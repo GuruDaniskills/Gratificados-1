@@ -1,0 +1,24 @@
+name: Criar IPA (iOS, sem assinatura)
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npx cap add ios
+      - run: npx capacitor-assets generate --ios --iconBackgroundColor '#091930' --splashBackgroundColor '#091930'
+        continue-on-error: true
+      - run: npx cap sync ios
+      - run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos \
+            -archivePath "$PWD/build/App.xcarchive" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO archive
+      - run: |
+          mkdir -p Payload && cp -R build/App.xcarchive/Products/Applications/App.app Payload/
+          zip -r Gratificados-sem-assinatura.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gratificados-IPA
+          path: Gratificados-sem-assinatura.ipa
